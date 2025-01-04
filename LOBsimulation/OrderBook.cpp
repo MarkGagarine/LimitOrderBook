@@ -75,6 +75,8 @@ void OrderBook::addOrder(Order *newOrder) {
     // direct order based on type
     if (newOrder->getType() == EventType::market){
 
+        std::cout << "Routing market order" << std::endl;
+
         // check order side
         if (newOrder->getSide() == Side::buy) { // route market buy
             routeMarketBuy(newOrder);
@@ -137,6 +139,11 @@ void OrderBook::routeMarketBuy(Order *newOrder) {
     // check market order still needs to be filled
     while ((newOrder->getQuantityRemaining() > 0) && (newOrder->getOrderStatus() != OrderStatus::filled)) {
 
+        // Check if any open orders available
+        if (_asks.empty()) {
+            break;
+        }
+
         // sweep through all price levels
         for (auto level = _asks.begin(); level != _asks.end(); ++level) {
 
@@ -157,6 +164,11 @@ void OrderBook::routeMarketBuy(Order *newOrder) {
 void OrderBook::routeMarketSell(Order *newOrder) {
     // check market order still needs to be filled
     while ((newOrder->getQuantityRemaining() > 0) && (newOrder->getOrderStatus() != OrderStatus::filled)) {
+
+        // Check if any open orders available
+        if (_bids.empty()) {
+            break;
+        }
 
         // sweep through all price levels
         for (auto level = _bids.begin(); level != _bids.end(); ++level) {
