@@ -21,7 +21,7 @@ const LevelData &PriceLevelData::getAsks() const {
 }
 
 
-Order::Order(EventType type, int orderId, Side side, Price price, int quantity)
+Order::Order(EventType type, int orderId, Side side, Price price, Quantity quantity)
     : _type(type)
     , _orderId(orderId)
     , _side(side)
@@ -49,11 +49,11 @@ Price Order::getPrice() const {
     return _price;
 }
 
-int Order::getQuantity() const {
+Quantity Order::getQuantity() const {
     return _quantity;
 }
 
-int Order::getQuantityRemaining() const {
+Quantity Order::getQuantityRemaining() const {
     return _quantityRemaining;
 }
 
@@ -62,11 +62,11 @@ OrderStatus Order::getOrderStatus() const {
     return _status;
 }
 
-void Order::setQuantityRemaining(int newQuantity) {
+void Order::setQuantityRemaining(Quantity newQuantity) {
     _quantityRemaining = newQuantity;
 }
 
-void Order::fill(int fillQuantity) {
+void Order::fill(Quantity fillQuantity) {
 
     // update remaining quantity
     _quantityRemaining -= fillQuantity;
@@ -126,7 +126,7 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel) {
         Order* currentOrder = *orders;
 
         // process current order
-        int fillQuantity = std::min(newOrder->getQuantityRemaining(), currentOrder->getQuantityRemaining());
+        Quantity fillQuantity = std::min(newOrder->getQuantityRemaining(), currentOrder->getQuantityRemaining());
         currentOrder->fill(fillQuantity);
         newOrder->fill(fillQuantity);
 

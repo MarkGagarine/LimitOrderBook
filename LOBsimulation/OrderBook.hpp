@@ -9,6 +9,7 @@
 #include <map>
 
 using Price = double;
+using Quantity = int;
 
 enum class Side {
     buy,
@@ -29,7 +30,7 @@ enum class OrderStatus {
 
 struct PriceLevel {
     Price price;
-    int quantity;
+    Quantity quantity;
 };
 
 using LevelData = std::vector<PriceLevel>;
@@ -52,18 +53,18 @@ private:
 
 class Order {
 public:
-    Order(EventType type, int orderId, Side side, Price price, int quantity);
+    Order(EventType type, int orderId, Side side, Price price, Quantity quantity);
 
     EventType getType() const;
     int getOrderId() const;
     Side getSide() const;
     Price getPrice() const;
-    int getQuantity() const;
-    int getQuantityRemaining() const;
+    Quantity getQuantity() const;
+    Quantity getQuantityRemaining() const;
     OrderStatus getOrderStatus() const;
 
-    void fill(int fillQuantity);
-    void setQuantityRemaining(int newQuantity);
+    void fill(Quantity fillQuantity);
+    void setQuantityRemaining(Quantity newQuantity);
 
 private:
 
@@ -72,8 +73,8 @@ private:
     int _orderId;
     Side _side;
     Price _price;
-    int _quantity;
-    int _quantityRemaining;
+    Quantity _quantity;
+    Quantity _quantityRemaining;
     OrderStatus _status;
 
 };
@@ -105,7 +106,7 @@ private:
     void routeLimit(Order* newOrder);
     void routeCancellation(Order* newOrder);
 
-    std::unordered_map<Price, LevelData> _data;
+    std::unordered_map<Price, Quantity> _data;
     std::map<Price, Orders, std::greater<Price>> _bids;
     std::map<Price, Orders, std::less<Price>> _asks;
 
@@ -126,7 +127,7 @@ private:
     // begin with market order, then vector[0] can modify big market orders, and append limits to end
     // somehow store avg price of market order filled??
     std::vector<int> _orderIds;
-    std::vector<int> _orderQuantities;
+    std::vector<Quantity> _orderQuantities;
     std::vector<Price> _orderPrices;
 
 };
