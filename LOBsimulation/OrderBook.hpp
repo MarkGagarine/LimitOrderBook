@@ -28,29 +28,6 @@ enum class OrderStatus {
     filled
 };
 
-struct PriceLevel {
-    Price price;
-    Quantity quantity;
-};
-
-using LevelData = std::vector<PriceLevel>;
-
-class PriceLevelData {
-
-public:
-
-    PriceLevelData(const LevelData& bids, const LevelData& asks);
-
-    const LevelData& getBids() const;
-    const LevelData& getAsks() const;
-
-private:
-
-    const LevelData _bids;
-    const LevelData _asks;
-
-};
-
 class Order {
 public:
     Order(EventType type, int orderId, Side side, Price price, Quantity quantity);
@@ -88,7 +65,7 @@ public:
 
     // getters
     Price getSpread() const;
-
+    std::unordered_map<Price, Quantity> getPriceLevelData() const;
 
     // update methods
 
@@ -106,7 +83,7 @@ private:
     void routeLimit(Order* newOrder);
     void routeCancellation(Order* newOrder);
 
-    std::unordered_map<Price, Quantity> _data;
+    std::unordered_map<Price, Quantity> _priceLevelData;
     std::map<Price, Orders, std::greater<Price>> _bids;
     std::map<Price, Orders, std::less<Price>> _asks;
 

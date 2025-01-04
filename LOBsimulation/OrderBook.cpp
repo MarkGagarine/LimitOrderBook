@@ -6,21 +6,6 @@
 #include "OrderBook.hpp"
 #include <iostream>
 
-PriceLevelData::PriceLevelData(const LevelData &bids, const LevelData &asks)
-    : _bids(bids)
-    , _asks(asks)   {
-    // Constructor initialization
-}
-
-const LevelData &PriceLevelData::getBids() const {
-    return _bids;
-}
-
-const LevelData &PriceLevelData::getAsks() const {
-    return _asks;
-}
-
-
 Order::Order(EventType type, int orderId, Side side, Price price, Quantity quantity)
     : _type(type)
     , _orderId(orderId)
@@ -131,7 +116,8 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel) {
         newOrder->fill(fillQuantity);
 
         // update PriceLevelData
-                                    //----!!!!----
+        _priceLevelData[newOrder->getPrice()] -= fillQuantity;
+
         // update trade info
 
         // check if current limit order needs to be removed from queue (it's filled)
@@ -194,12 +180,20 @@ void OrderBook::routeLimit(Order *newOrder) {
     if (newOrder->getSide() == Side::buy){
         // route buy limit
         _bids[newOrder->getPrice()].push_back(newOrder);
+
+        // update price level info
+        _priceLevelData[newOrder->getPrice()] += newOrder->getQuantity();
     }
     else {
+        // check sell is not below minimum
+        // ---!!!!
+
+
         // route sell limit
         _asks[newOrder->getPrice()].push_back(newOrder);
 
-        // check sell is not below minimum
+        // update price level info
+        _priceLevelData[newOrder->getPrice()] += newOrder->getQuantity();
     }
 }
 
