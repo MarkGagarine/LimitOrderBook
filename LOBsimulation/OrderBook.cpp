@@ -210,5 +210,46 @@ void OrderBook::routeLimit(Order *newOrder) {
 }
 
 void OrderBook::routeCancellation(Order *newOrder) {
+    // check order side
+    if (newOrder->getSide() == Side::buy) {
 
+        // find price level
+        Orders ordersAtLevel = _bids[newOrder->getPrice()];
+
+        // iterate through bids until desired order is found
+        for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
+
+            Order* order = *orders;
+
+            // delete desired order from queue
+            if (order->getOrderId() == newOrder->getOrderId()) {
+
+                // update price level data
+                _priceLevelData[newOrder->getPrice()] -= newOrder->getQuantityRemaining();
+
+                // update order book
+                orders = ordersAtLevel.erase(orders);
+            }
+        }
+    }
+    else {
+        // find price level
+        Orders ordersAtLevel = _asks[newOrder->getPrice()];
+
+        // iterate through bids until desired order is found
+        for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
+
+            Order* order = *orders;
+
+            // delete desired order from queue
+            if (order->getOrderId() == newOrder->getOrderId()) {
+
+                // update price level data
+                _priceLevelData[newOrder->getPrice()] -= newOrder->getQuantityRemaining();
+
+                // update order book
+                orders = ordersAtLevel.erase(orders);
+            }
+        }
+    }
 }
