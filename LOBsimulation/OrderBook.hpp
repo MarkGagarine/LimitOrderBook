@@ -5,58 +5,12 @@
 #ifndef LOBSIMULATION_ORDERBOOK_HPP
 #define LOBSIMULATION_ORDERBOOK_HPP
 
+#include "Order.h"
+//#include "Trade.h"
+
 #include <vector>
 #include <map>
 
-using Price = double;
-using Quantity = int;
-
-enum class Side {
-    buy,
-    sell
-};
-
-enum class EventType {
-    market,
-    limit,
-    cancel
-};
-
-enum class OrderStatus {
-    open,
-    partial,
-    filled
-};
-
-class Order {
-public:
-    Order(EventType type, int orderId, Side side, Price price, Quantity quantity);
-
-    EventType getType() const;
-    int getOrderId() const;
-    Side getSide() const;
-    Price getPrice() const;
-    Quantity getQuantity() const;
-    Quantity getQuantityRemaining() const;
-    OrderStatus getOrderStatus() const;
-
-    void fill(Quantity fillQuantity);
-    void setQuantityRemaining(Quantity newQuantity);
-
-private:
-
-
-    EventType _type;
-    int _orderId;
-    Side _side;
-    Price _price;
-    Quantity _quantity;
-    Quantity _quantityRemaining;
-    OrderStatus _status;
-
-};
-
-using Orders = std::vector<Order*>;
 
 class OrderBook {
 public:
@@ -64,54 +18,38 @@ public:
     OrderBook();
 
     // getters
+    Price getBestQuote(Side side) const;
     Price getSpread() const;
-    std::unordered_map<Price, Quantity> getPriceLevelData() const;
+    std::map<Price, Quantity, std::greater<Price>> getPriceLevelData() const;
 
     // update methods
 
+    //Trade* addOrder(Order* newOrder, int tradeId);
+
     void addOrder(Order* newOrder);
+
 
     void updatePriceLevel();
 
 
 private:
-
+/*
+    void routeMarketBuy(Order* newOrder, Trade* trade);
+    void routeMarketSell(Order* newOrder, Trade* trade);
+    void matchMarketOrder(Order* newOrder, Orders ordersAtLevel, Trade* trade);
+*/
     void routeMarketBuy(Order* newOrder);
     void routeMarketSell(Order* newOrder);
-    void matchMarketOrder(Order* newOrder, Orders ordersAtLevel);
+    void matchMarketOrder(Order* newOrder, Orders& ordersAtLevel);
 
     void routeLimit(Order* newOrder);
     void routeCancellation(Order* newOrder);
 
-    std::unordered_map<Price, Quantity> _priceLevelData;
+    std::map<Price, Quantity, std::greater<Price>>  _priceLevelData;
     std::map<Price, Orders, std::greater<Price>> _bids;
     std::map<Price, Orders, std::less<Price>> _asks;
 
-
 };
-
-
-class Trade {
-public:
-
-    Trade(int tradeId);
-
-private:
-
-    int _tradeId;    // or tradeNo
-
-    // store order ids + qtys as vector
-    // begin with market order, then vector[0] can modify big market orders, and append limits to end
-    // somehow store avg price of market order filled??
-    std::vector<int> _orderIds;
-    std::vector<Quantity> _orderQuantities;
-    std::vector<Price> _orderPrices;
-
-};
-
-using Trades = std::vector<Trade*>;
-
-
 
 
 #endif //LOBSIMULATION_ORDERBOOK_HPP

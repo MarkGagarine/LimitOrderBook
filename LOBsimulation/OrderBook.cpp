@@ -6,72 +6,41 @@
 #include "OrderBook.hpp"
 #include <iostream>
 
-Order::Order(EventType type, int orderId, Side side, Price price, Quantity quantity)
-    : _type(type)
-    , _orderId(orderId)
-    , _side(side)
-    , _price(price)
-    , _quantity(quantity)   {
-
-    // Constructor initialization
-    setQuantityRemaining(_quantity);
-    _status = OrderStatus::open;
-}
-
-EventType Order::getType() const {
-    return _type;
-}
-
-int Order::getOrderId() const {
-    return _orderId;
-}
-
-Side Order::getSide() const {
-    return _side;
-}
-
-Price Order::getPrice() const {
-    return _price;
-}
-
-Quantity Order::getQuantity() const {
-    return _quantity;
-}
-
-Quantity Order::getQuantityRemaining() const {
-    return _quantityRemaining;
-}
-
-
-OrderStatus Order::getOrderStatus() const {
-    return _status;
-}
-
-void Order::setQuantityRemaining(Quantity newQuantity) {
-    _quantityRemaining = newQuantity;
-}
-
-void Order::fill(Quantity fillQuantity) {
-
-    // update remaining quantity
-    _quantityRemaining -= fillQuantity;
-
-    // update order status
-    if (_quantityRemaining) {
-        _status = OrderStatus::partial;
-    }
-    else {
-        _status = OrderStatus::filled;
-    }
-}
-
 
 OrderBook::OrderBook() {
     // Constructor initialization
 }
 
-void OrderBook::addOrder(Order *newOrder) {
+Price OrderBook::getBestQuote(Side side) const {
 
+    // check side
+    if (side == Side::buy) {
+        // return ask price closest to bids
+        auto lowestAsk = _asks.begin();
+        return lowestAsk->first;
+    }
+    else {
+        // return bid price closest to asks
+        auto highestBid = _bids.begin();
+        return highestBid->first;
+    }
+}
+
+Price OrderBook::getSpread() const {
+    return getBestQuote(Side::buy) - getBestQuote(Side::sell);
+}
+
+std::map<Price, Quantity, std::greater<Price>> OrderBook::getPriceLevelData() const {
+    return _priceLevelData;
+}
+
+//Trade* OrderBook::addOrder(Order *newOrder, int tradeId) {
+void OrderBook::addOrder(Order *newOrder) {
+    /*
+    // Initialize return result
+    Trade newTrade = Trade(tradeId);
+    Trade* tradeResult = &newTrade;
+*/
     // direct order based on type
     if (newOrder->getType() == EventType::market){
 
@@ -79,11 +48,15 @@ void OrderBook::addOrder(Order *newOrder) {
 
         // check order side
         if (newOrder->getSide() == Side::buy) { // route market buy
+            //routeMarketBuy(newOrder, tradeResult);
             routeMarketBuy(newOrder);
         }
         else {
+            //routeMarketSell(newOrder, tradeResult);
             routeMarketSell(newOrder);
         }
+
+        //return tradeResult;
     }
 
     else if (newOrder->getType() == EventType::limit){
@@ -99,15 +72,26 @@ void OrderBook::addOrder(Order *newOrder) {
         routeCancellation(newOrder);
     }
 
-    else {
-
-        // handle error???
-        throw std::runtime_error("Event type not defined.\n");
+    // remove any empty price levels from data
+    for (auto level = _priceLevelData.begin(); level != _priceLevelData.end(); ) {
+        if (level->second == 0) {
+            level = _priceLevelData.erase(level);
+        }
+        else {
+            ++level;
+        }
     }
 }
 
-void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel) {
+//void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel, Trade* trade) {
+void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
+
     for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
+
+        // check order isn't filled
+        if (newOrder->getQuantityRemaining() == 0) {
+            break;
+        }
 
         // access current order
         Order* currentOrder = *orders;
@@ -118,34 +102,47 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel) {
         newOrder->fill(fillQuantity);
 
         // update PriceLevelData
-        _priceLevelData[newOrder->getPrice()] -= fillQuantity;
+        _priceLevelData[currentOrder->getPrice()] -= fillQuantity;
 
+        std::cout << "--- Filled " << fillQuantity << " @ $" << currentOrder->getPrice() << "\n";
+
+        /*
         // update trade info
+        trade->updateTradeData(newOrder->getOrderId(), fillQuantity, newOrder->getPrice(), newOrder->getSide());
+        trade->updateTradeData(currentOrder->getOrderId(), fillQuantity, currentOrder->getPrice(), currentOrder->getSide());
+        */
 
         // check if current limit order needs to be removed from queue (it's filled)
         if (currentOrder->getQuantityRemaining() == 0) {
             // remove the empty order
             orders = ordersAtLevel.erase(orders);
         }
-        else {
+        /*else {
             // new market order has been filled, limit orders in queue cannot be filled anymore
             break;
-        }
+        }*/
     }
 }
 
 
+//void OrderBook::routeMarketBuy(Order *newOrder, Trade* trade) {
 void OrderBook::routeMarketBuy(Order *newOrder) {
     // check market order still needs to be filled
-    while ((newOrder->getQuantityRemaining() > 0) && (newOrder->getOrderStatus() != OrderStatus::filled)) {
+    //while ((newOrder->getQuantityRemaining() > 0) && (newOrder->getOrderStatus() != OrderStatus::filled)) {
 
-        // Check if any open orders available
-        if (_asks.empty()) {
-            break;
+        //std::cout << "ran here\n";
+        for (auto ask : _asks){
+            std::cout << "::: " << ask.second.size() << " quotes available @ $" << ask.first << "\n";
         }
+        // Check if any open orders available
+        /*if (_asks.empty()) {
+            std::cout << "ran here\n";
+            //break;
+        }*/
 
         // sweep through all price levels
-        for (auto level = _asks.begin(); level != _asks.end(); ++level) {
+        //for (auto level = _asks.begin(); level != _asks.end(); ++level) {
+        for (auto level = _asks.begin(); level != _asks.end(); ) {
 
             // check order isn't filled
             if (newOrder->getQuantityRemaining() == 0) {
@@ -156,12 +153,20 @@ void OrderBook::routeMarketBuy(Order *newOrder) {
             auto& ordersAtLevel = level->second;
 
             // look through current level queue
+            //matchMarketOrder(newOrder, ordersAtLevel, trade);
             matchMarketOrder(newOrder, ordersAtLevel);
+
+            // remove levels with no orders left
+            if (level->second.size() == 0) {
+                level = _asks.erase(level);
+            }
         }
     }
-}
+//}
 
+//void OrderBook::routeMarketSell(Order *newOrder, Trade* trade) {
 void OrderBook::routeMarketSell(Order *newOrder) {
+
     // check market order still needs to be filled
     while ((newOrder->getQuantityRemaining() > 0) && (newOrder->getOrderStatus() != OrderStatus::filled)) {
 
@@ -182,10 +187,17 @@ void OrderBook::routeMarketSell(Order *newOrder) {
             auto& ordersAtLevel = level->second;
 
             // look through current level queue
+            //matchMarketOrder(newOrder, ordersAtLevel, trade);
             matchMarketOrder(newOrder, ordersAtLevel);
+
+            // remove levels with no orders left
+            if (level->second.size() == 0) {
+                level = _bids.erase(level);
+            }
         }
     }
 }
+
 
 void OrderBook::routeLimit(Order *newOrder) {
     // check order side
@@ -229,6 +241,12 @@ void OrderBook::routeCancellation(Order *newOrder) {
 
                 // update order book
                 orders = ordersAtLevel.erase(orders);
+
+                // break out of loop
+                break;
+            }
+            else {
+                ++orders;
             }
         }
     }
@@ -249,7 +267,14 @@ void OrderBook::routeCancellation(Order *newOrder) {
 
                 // update order book
                 orders = ordersAtLevel.erase(orders);
+
+                // break out of loop
+                break;
+            }
+            else {
+                ++orders;
             }
         }
     }
 }
+
