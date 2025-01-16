@@ -30,7 +30,7 @@ Price OrderBook::getSpread() const {
     return getBestQuote(Side::buy) - getBestQuote(Side::sell);
 }
 
-std::map<Price, Quantity, std::greater<Price>> OrderBook::getPriceLevelData() const {
+std::map<Price, LevelData, std::greater<Price>> OrderBook::getPriceLevelData(){//} const {
     return _priceLevelData;
 }
 
@@ -74,7 +74,7 @@ void OrderBook::addOrder(Order *newOrder) {
 
     // remove any empty price levels from data
     for (auto level = _priceLevelData.begin(); level != _priceLevelData.end(); ) {
-        if (level->second == 0) {
+        if (level->second.quantity == 0) {
             level = _priceLevelData.erase(level);
         }
         else {
@@ -102,7 +102,8 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
         newOrder->fill(fillQuantity);
 
         // update PriceLevelData
-        _priceLevelData[currentOrder->getPrice()] -= fillQuantity;
+        _priceLevelData[currentOrder->getPrice()].quantity -= fillQuantity;
+        _priceLevelData[currentOrder->getPrice()].orderCount--;
 
         std::cout << "--- Filled " << fillQuantity << " @ $" << currentOrder->getPrice() << "\n";
 
@@ -204,9 +205,10 @@ void OrderBook::routeLimit(Order *newOrder) {
     if (newOrder->getSide() == Side::buy){
         // route buy limit
         _bids[newOrder->getPrice()].push_back(newOrder);
-
         // update price level info
-        _priceLevelData[newOrder->getPrice()] += newOrder->getQuantity();
+        _priceLevelData[newOrder->getPrice()].quantity += newOrder->getQuantity();
+        _priceLevelData[newOrder->getPrice()].orderCount--;
+        std::cout<<"added order\n";
     }
     else {
         // check sell is not below minimum
@@ -217,7 +219,9 @@ void OrderBook::routeLimit(Order *newOrder) {
         _asks[newOrder->getPrice()].push_back(newOrder);
 
         // update price level info
-        _priceLevelData[newOrder->getPrice()] += newOrder->getQuantity();
+    std::cout << "works here\n";
+        _priceLevelData[newOrder->getPrice()].quantity  += newOrder->getQuantity();
+        _priceLevelData[newOrder->getPrice()].orderCount--;
     }
 }
 
@@ -237,7 +241,8 @@ void OrderBook::routeCancellation(Order *newOrder) {
             if (order->getOrderId() == newOrder->getOrderId()) {
 
                 // update price level data
-                _priceLevelData[newOrder->getPrice()] -= newOrder->getQuantityRemaining();
+                _priceLevelData[newOrder->getPrice()].quantity -= newOrder->getQuantityRemaining();
+                _priceLevelData[newOrder->getPrice()].orderCount--;
 
                 // update order book
                 orders = ordersAtLevel.erase(orders);
@@ -263,7 +268,8 @@ void OrderBook::routeCancellation(Order *newOrder) {
             if (order->getOrderId() == newOrder->getOrderId()) {
 
                 // update price level data
-                _priceLevelData[newOrder->getPrice()] -= newOrder->getQuantityRemaining();
+                _priceLevelData[newOrder->getPrice()].quantity -= newOrder->getQuantityRemaining();
+                _priceLevelData[newOrder->getPrice()].orderCount--;
 
                 // update order book
                 orders = ordersAtLevel.erase(orders);

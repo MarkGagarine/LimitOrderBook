@@ -11,6 +11,11 @@
 #include <vector>
 #include <map>
 
+struct LevelData {
+    Quantity quantity;
+    int orderCount;
+};
+
 
 class OrderBook {
 public:
@@ -20,7 +25,7 @@ public:
     // getters
     Price getBestQuote(Side side) const;
     Price getSpread() const;
-    std::map<Price, Quantity, std::greater<Price>> getPriceLevelData() const;
+    std::map<Price, LevelData, std::greater<Price>> getPriceLevelData();// const;
 
     // update methods
 
@@ -45,7 +50,8 @@ private:
     void routeLimit(Order* newOrder);
     void routeCancellation(Order* newOrder);
 
-    std::map<Price, Quantity, std::greater<Price>>  _priceLevelData;
+    //std::map<Price, Quantity, std::greater<Price>>  _priceLevelData;
+    std::map<Price, LevelData, std::greater<Price>>  _priceLevelData;
     std::map<Price, Orders, std::greater<Price>> _bids;
     std::map<Price, Orders, std::less<Price>> _asks;
 
