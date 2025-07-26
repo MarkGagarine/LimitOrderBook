@@ -207,7 +207,7 @@ void OrderBook::routeLimit(Order *newOrder) {
         _bids[newOrder->getPrice()].push_back(newOrder);
         // update price level info
         _priceLevelData[newOrder->getPrice()].quantity += newOrder->getQuantity();
-        _priceLevelData[newOrder->getPrice()].orderCount--;
+        _priceLevelData[newOrder->getPrice()].orderCount++;
         std::cout<<"added order\n";
     }
     else {
@@ -221,7 +221,7 @@ void OrderBook::routeLimit(Order *newOrder) {
         // update price level info
     std::cout << "works here\n";
         _priceLevelData[newOrder->getPrice()].quantity  += newOrder->getQuantity();
-        _priceLevelData[newOrder->getPrice()].orderCount--;
+        _priceLevelData[newOrder->getPrice()].orderCount++;
     }
 }
 

@@ -151,11 +151,11 @@ void Simulation::runSimulation() {
     }
 
 
-    std::map<Price, Quantity, std::greater<Price>> dat = _OB.getPriceLevelData();
+    std::map<Price, LevelData, std::greater<Price>> dat = _OB.getPriceLevelData();
 
     std::cout << "----Initialized OrderBook----\n";
     for (auto level : dat){
-        std::cout << level.second << " available @ $" << level.first << std::endl;
+        std::cout << level.second.orderCount << " orders with " << level.second.quantity << " available @ $" << level.first << std::endl;
     }
 
     std::cout << "\n The spread is $" << _OB.getSpread() << "\n";
@@ -177,7 +177,7 @@ void Simulation::runSimulation() {
 
         _limitBuyTimes[i] = EXP(_limitBuyArrivalRates[i], gen);
         _limitSellTimes[i] = EXP(_limitSellArrivalRates[i], gen);
-        _cancelBuyTimes[i] = EXP(_limitBuyCancellationRates[i], gen);   // make rate propotional to size of current ask queue
+        _cancelBuyTimes[i] = EXP(_limitBuyCancellationRates[i], gen);        // make rate propotional to size of current ask queue
         _cancelSellTimes[i] = EXP(_limitSellCancellationRates[i], gen);
 /*
         std::cout << " time till limit buy  " << _limitBuyTimes[i] << "\n";
