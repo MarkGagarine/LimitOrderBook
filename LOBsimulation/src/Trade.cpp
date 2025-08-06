@@ -2,7 +2,7 @@
 // Created by Mark Gagarine on 2025-01-05.
 //
 
-#include "Trade.h"
+#include "simulation/Trade.h"
 
 Trade::Trade(int tradeId)
         : _tradeId(tradeId) {

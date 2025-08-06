@@ -2,7 +2,7 @@
 // Created by Mark Gagarine on 2025-01-05.
 //
 
-#include "Simulation.h"
+#include "simulation/Simulation.h"
 
 
 Simulation::Simulation(Price startingPrice, int ticks, Price priceLevelSize)

@@ -1,17 +1,24 @@
 //
 // Created by Mark Gagarine on 2024-12-29.
-//
 
 
-#include "OrderBook.hpp"
+#include "simulation/OrderBook.hpp"
 #include <iostream>
 
 
+/**
+ * @brief 
+ */
 OrderBook::OrderBook() {
     // Constructor initialization
 }
 
-Price OrderBook::getBestQuote(Side side) const {
+/**
+ * @brief 
+ * @param side 
+ * @return 
+ */
+auto OrderBook::getBestQuote(Side side) const -> Price {
 
     // check side
     if (side == Side::buy) {
@@ -26,15 +33,23 @@ Price OrderBook::getBestQuote(Side side) const {
     }
 }
 
+/**
+ * @brief 
+ * @return 
+ */
 Price OrderBook::getSpread() const {
     return getBestQuote(Side::buy) - getBestQuote(Side::sell);
 }
 
-std::map<Price, LevelData, std::greater<Price>> OrderBook::getPriceLevelData(){//} const {
+std::map<Price, LevelData, std::greater<Price>> OrderBook::getPriceLevelData() {//} const {
     return _priceLevelData;
 }
 
 //Trade* OrderBook::addOrder(Order *newOrder, int tradeId) {
+/**
+ * @brief 
+ * @param newOrder 
+ */
 void OrderBook::addOrder(Order *newOrder) {
     /*
     // Initialize return result
@@ -84,6 +99,11 @@ void OrderBook::addOrder(Order *newOrder) {
 }
 
 //void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel, Trade* trade) {
+/**
+ * @brief 
+ * @param newOrder 
+ * @param ordersAtLevel 
+ */
 void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
 
     for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
@@ -127,6 +147,10 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
 
 
 //void OrderBook::routeMarketBuy(Order *newOrder, Trade* trade) {
+/**
+ * @brief 
+ * @param newOrder 
+ */
 void OrderBook::routeMarketBuy(Order *newOrder) {
     // check market order still needs to be filled
     //while ((newOrder->getQuantityRemaining() > 0) && (newOrder->getOrderStatus() != OrderStatus::filled)) {

@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "OrderBook.hpp"
-#include "Simulation.h"
+#include "simulation/OrderBook.hpp"
+#include "simulation/Simulation.h"
 
 int main() {
 
