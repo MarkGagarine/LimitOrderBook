@@ -11,6 +11,11 @@
 #include <vector>
 #include <map>
 
+using Orders = std::vector<Order*>;
+
+/**
+ * @brief Store outstanding order data for a given price level
+ */
 struct LevelData {
     Quantity quantity;
     int orderCount;
@@ -28,12 +33,9 @@ public:
     std::map<Price, LevelData, std::greater<Price>> getPriceLevelData();// const;
 
     // update methods
-
     //Trade* addOrder(Order* newOrder, int tradeId);
 
     void addOrder(Order* newOrder);
-
-
     void updatePriceLevel();
 
 

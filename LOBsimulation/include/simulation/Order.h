@@ -5,8 +5,6 @@
 #ifndef LOBSIMULATION_ORDER_H
 #define LOBSIMULATION_ORDER_H
 
-#include <vector>
-
 using Price = double;
 using Quantity = int;
 
@@ -44,7 +42,6 @@ public:
 
 private:
 
-
     EventType _type;
     int _orderId;
     Side _side;
@@ -54,9 +51,5 @@ private:
     OrderStatus _status;
 
 };
-
-using Orders = std::vector<Order*>;
-
-
 
 #endif //LOBSIMULATION_ORDER_H

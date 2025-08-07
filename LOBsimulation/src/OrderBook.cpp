@@ -14,41 +14,54 @@ OrderBook::OrderBook() {
 }
 
 /**
- * @brief 
- * @param side 
- * @return 
+ * @brief Retrieve the best quoted price for a given side
+ * @param side Request buy or sell side quote
+ * @return Price of Lowest ask (for buy) or Highest bid (for sell)
+ * @note An empty side returns a best price of 0
  */
-auto OrderBook::getBestQuote(Side side) const -> Price {
-
-    // check side
+Price OrderBook::getBestQuote(Side side) const {
     if (side == Side::buy) {
         // return ask price closest to bids
-        auto lowestAsk = _asks.begin();
-        return lowestAsk->first;
+        if (_asks.empty()) {
+            return 0.;
+        }
+        else {
+            auto lowestAsk = _asks.begin();
+            return lowestAsk->first;
+        }
     }
     else {
         // return bid price closest to asks
-        auto highestBid = _bids.begin();
-        return highestBid->first;
+        if (_bids.empty()) {
+            return 0.;
+        }
+        else {
+            auto highestBid = _bids.begin();
+            return highestBid->first;
+        }
     }
 }
 
 /**
- * @brief 
- * @return 
+ * @brief Calculate the spread of the current orderbook state
+ * @return Price difference between the lowest ask and highest bid
  */
 Price OrderBook::getSpread() const {
     return getBestQuote(Side::buy) - getBestQuote(Side::sell);
 }
 
+/**
+ * @brief Return the current state of the orderbook
+ * @return Ordered map of price level and its open order data
+ */
 std::map<Price, LevelData, std::greater<Price>> OrderBook::getPriceLevelData() {//} const {
     return _priceLevelData;
 }
 
 //Trade* OrderBook::addOrder(Order *newOrder, int tradeId) {
 /**
- * @brief 
- * @param newOrder 
+ * @brief Update the orderbook with a new order
+ * @param newOrder Pointer to the new order object
  */
 void OrderBook::addOrder(Order *newOrder) {
     /*
@@ -56,11 +69,10 @@ void OrderBook::addOrder(Order *newOrder) {
     Trade newTrade = Trade(tradeId);
     Trade* tradeResult = &newTrade;
 */
+    // TODO: replace if else for switch case
     // direct order based on type
     if (newOrder->getType() == EventType::market){
-
         std::cout << "Routing market order" << std::endl;
-
         // check order side
         if (newOrder->getSide() == Side::buy) { // route market buy
             //routeMarketBuy(newOrder, tradeResult);
@@ -70,23 +82,16 @@ void OrderBook::addOrder(Order *newOrder) {
             //routeMarketSell(newOrder, tradeResult);
             routeMarketSell(newOrder);
         }
-
         //return tradeResult;
     }
-
     else if (newOrder->getType() == EventType::limit){
-
-        // route limit order
         std::cout << "Routing limit order" << std::endl;
         routeLimit(newOrder);
     }
-
     else if (newOrder->getType() == EventType::cancel){
-
         // route order cancellation
         routeCancellation(newOrder);
     }
-
     // remove any empty price levels from data
     for (auto level = _priceLevelData.begin(); level != _priceLevelData.end(); ) {
         if (level->second.quantity == 0) {
@@ -100,39 +105,31 @@ void OrderBook::addOrder(Order *newOrder) {
 
 //void OrderBook::matchMarketOrder(Order *newOrder, Orders ordersAtLevel, Trade* trade) {
 /**
- * @brief 
- * @param newOrder 
- * @param ordersAtLevel 
+ * @brief Match a new market order to current open limit orders
+ * @param newOrder New market order to be filled (fully or partially)
+ * @param ordersAtLevel Current open limit orders
  */
 void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
-
     for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
-
         // check order isn't filled
         if (newOrder->getQuantityRemaining() == 0) {
             break;
         }
-
         // access current order
         Order* currentOrder = *orders;
-
         // process current order
         Quantity fillQuantity = std::min(newOrder->getQuantityRemaining(), currentOrder->getQuantityRemaining());
         currentOrder->fill(fillQuantity);
         newOrder->fill(fillQuantity);
-
         // update PriceLevelData
         _priceLevelData[currentOrder->getPrice()].quantity -= fillQuantity;
         _priceLevelData[currentOrder->getPrice()].orderCount--;
-
         std::cout << "--- Filled " << fillQuantity << " @ $" << currentOrder->getPrice() << "\n";
-
         /*
         // update trade info
         trade->updateTradeData(newOrder->getOrderId(), fillQuantity, newOrder->getPrice(), newOrder->getSide());
         trade->updateTradeData(currentOrder->getOrderId(), fillQuantity, currentOrder->getPrice(), currentOrder->getSide());
         */
-
         // check if current limit order needs to be removed from queue (it's filled)
         if (currentOrder->getQuantityRemaining() == 0) {
             // remove the empty order
@@ -148,8 +145,8 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
 
 //void OrderBook::routeMarketBuy(Order *newOrder, Trade* trade) {
 /**
- * @brief 
- * @param newOrder 
+ * @brief Execute markey buy order
+ * @param newOrder Market buy order object
  */
 void OrderBook::routeMarketBuy(Order *newOrder) {
     // check market order still needs to be filled
@@ -164,25 +161,19 @@ void OrderBook::routeMarketBuy(Order *newOrder) {
             std::cout << "ran here\n";
             //break;
         }*/
-
         // sweep through all price levels
-        //for (auto level = _asks.begin(); level != _asks.end(); ++level) {
         for (auto level = _asks.begin(); level != _asks.end(); ) {
-
-            // check order isn't filled
+            // exit loop if order is filled
             if (newOrder->getQuantityRemaining() == 0) {
                 break;
             }
-
             // access orders at current level
             auto& ordersAtLevel = level->second;
-
             // look through current level queue
             //matchMarketOrder(newOrder, ordersAtLevel, trade);
             matchMarketOrder(newOrder, ordersAtLevel);
-
-            // remove levels with no orders left
-            if (level->second.size() == 0) {
+            // remove levels with no orders left, moving to next level (so no iter)
+            if (level->second.empty()) {
                 level = _asks.erase(level);
             }
         }
@@ -190,6 +181,11 @@ void OrderBook::routeMarketBuy(Order *newOrder) {
 //}
 
 //void OrderBook::routeMarketSell(Order *newOrder, Trade* trade) {
+
+/**
+ * @brief Execute markey buy sell
+ * @param newOrder Market sell order object
+ */
 void OrderBook::routeMarketSell(Order *newOrder) {
 
     // check market order still needs to be filled
@@ -223,7 +219,10 @@ void OrderBook::routeMarketSell(Order *newOrder) {
     }
 }
 
-
+/**
+ * @brief Execute limit order
+ * @param newOrder Limit order object
+ */
 void OrderBook::routeLimit(Order *newOrder) {
     // check order side
     if (newOrder->getSide() == Side::buy){
@@ -237,11 +236,8 @@ void OrderBook::routeLimit(Order *newOrder) {
     else {
         // check sell is not below minimum
         // ---!!!!
-
-
         // route sell limit
         _asks[newOrder->getPrice()].push_back(newOrder);
-
         // update price level info
     std::cout << "works here\n";
         _priceLevelData[newOrder->getPrice()].quantity  += newOrder->getQuantity();
@@ -249,28 +245,25 @@ void OrderBook::routeLimit(Order *newOrder) {
     }
 }
 
+/**
+ * @brief Execute order cancellation
+ * @param newOrder
+ */
 void OrderBook::routeCancellation(Order *newOrder) {
     // check order side
     if (newOrder->getSide() == Side::buy) {
-
         // find price level
         Orders ordersAtLevel = _bids[newOrder->getPrice()];
-
         // iterate through bids until desired order is found
         for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
-
             Order* order = *orders;
-
             // delete desired order from queue
             if (order->getOrderId() == newOrder->getOrderId()) {
-
                 // update price level data
                 _priceLevelData[newOrder->getPrice()].quantity -= newOrder->getQuantityRemaining();
                 _priceLevelData[newOrder->getPrice()].orderCount--;
-
                 // update order book
                 orders = ordersAtLevel.erase(orders);
-
                 // break out of loop
                 break;
             }

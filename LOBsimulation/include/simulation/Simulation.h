@@ -17,8 +17,8 @@
 #include <algorithm> // for std::transform
 #include <iterator>  // for std::back_inserter
 
-using Price = double;
-using Quantity = int;
+//using Price = double;
+//using Quantity = int;
 using Time = double;
 
 //using EXP = std::exponential_distribution<double>;
