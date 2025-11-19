@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Order.hpp"
-
 #include <vector>
 #include <map>
 #include <set>
@@ -22,13 +21,12 @@ struct LevelData {
     int orderCount;
 };
 
+using PriceLevelData = std::map<Price, LevelData, std::greater<Price>>;
+
 /**
 * @brief A structure storing changes made to the order book state by the order
  */
 struct Delta {
-    //Delta();
-    //Delta(EventType type, unsigned int orderId, Quantity quantity, double price, Side side)
-      //  : type(type), orderId(orderId), quantity(quantity), price(price), side(side) {}
     // time??
     EventType type;
     unsigned int orderId;
@@ -41,7 +39,6 @@ using DeltaUpdates = std::vector<std::unique_ptr<Delta>>;
 
 struct Updates {
     Updates();
-    //void addUpdate(const Delta* delta);
     void addUpdate(Order* newOrder);
     void addUpdate(EventType type, unsigned int orderId, Quantity quantity, double price, Side side);
     size_t cnt;
@@ -52,32 +49,36 @@ class OrderBook {
 public:
 
     OrderBook();
+    ~OrderBook();
 
     DeltaUpdates publishUpdates();
     void addOrder(Order* newOrder);
 
     Price getBestQuote(Side side) const;
     Price getSpread() const;
-    std::map<Price, LevelData, std::greater<Price>> getPriceLevelData() const;
+    PriceLevelData getPriceLevelData() const;
     std::set<int> getOrderIds() const;
     int getTopOrderId() const;
 
 private:
 
-    void routeMarketBuy(Order* newOrder);
-    void routeMarketSell(Order* newOrder);
+    template <typename BookSideMap>
+    void routeMarketOrder(Order* newOrder, BookSideMap& bookSide);
     void matchMarketOrder(Order* newOrder, Orders& ordersAtLevel);
 
-    void routeLimit(Order* newOrder);
-    void routeCancellation(Order* newOrder);
+    template <typename BookSideMap>
+    void routeLimitOrder(Order* newOrder, BookSideMap& bookSide);
 
-    std::map<Price, LevelData, std::greater<Price>>  _priceLevelData;
+    template <typename BookSideMap>
+    void routeCancelOrder(Order* newOrder, BookSideMap& bookSide);
+
+    PriceLevelData  _priceLevelData;
     std::map<Price, Orders, std::greater<Price>> _bids;
     std::map<Price, Orders, std::less<Price>> _asks;
 
     std::set<int> orderIds;
+    //std::map<int, Orders::iterator> _orderIndex;
     Updates _updateBuffer;
 };
-
 
 //#endif //LOBSIMULATION_ORDERBOOK_HPP
