@@ -1,9 +1,8 @@
 add_library(lob_engine STATIC
         src/Order.cpp
         src/OrderBook.cpp
+        src/OrderController.cpp
 )
-
-target_compile_features(lob_engine PUBLIC cxx_std_20)
 
 # Make <lob/Order.hpp> and <lob/OrderBook.hpp> available to dependents
 target_include_directories(lob_engine
@@ -19,4 +18,5 @@ target_sources(lob_engine PUBLIC
         FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/include/engine/Order.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/engine/OrderBook.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/engine/OrderController.hpp
 )

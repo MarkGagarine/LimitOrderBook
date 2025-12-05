@@ -114,6 +114,16 @@ int OrderBook::getTopOrderId() const {
     return *currentOrderId;
 }
 
+int OrderBook::getActiveOrderID(Price price) const {
+    int res = -1;
+    auto oidIt = _activeOrders.find(price);
+    if (oidIt != _activeOrders.end()) {
+        res = oidIt->first;
+    }
+    return res;
+}
+
+
 /**
  * @brief Update the orderbook with a new order
  * @param newOrder Pointer to the new order object
@@ -194,15 +204,19 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
         currentOrder->fill(fillQuantity);
         newOrder->fill(fillQuantity);
 
-        _updateBuffer.addUpdate(currentOrder->getType(), currentOrder->getOrderId(), fillQuantity,
+        Price priceKey = currentOrder->getPrice();
+        int currOrderID = currentOrder->getOrderId();
+
+        _updateBuffer.addUpdate(newOrder->getType(), currOrderID, fillQuantity,
             currentOrder->getPrice(), currentOrder->getSide());
 
-        _priceLevelData[currentOrder->getPrice()].quantity -= fillQuantity;
+        _priceLevelData[priceKey].quantity -= fillQuantity;
         //std::cout << "--- Filled " << fillQuantity << " @ $" << currentOrder->getPrice() << "\n";
         if (currentOrder->getQuantityRemaining() == 0) {
-            _priceLevelData[currentOrder->getPrice()].orderCount--;
+            _priceLevelData[priceKey].orderCount--;
             ordersAtLevel.erase(orders);
-            orderIds.erase(currentOrder->getOrderId());
+            //orderIds.erase(currentOrder->getOrderId());
+            _activeOrders[priceKey].erase(currOrderID);
             delete currentOrder;
         }
     }
@@ -244,11 +258,18 @@ void OrderBook::matchMarketOrder(Order *newOrder, Orders& ordersAtLevel) {
 //     }
 // }
 
+/**
+ *
+ * @tparam BookSideMap map<price, orderQueue>
+ * @param newOrder pointer to new limit order (owned by the book)
+ * @param bookSide Ask or Bid Queue Map
+ */
 template <typename BookSideMap>
 void OrderBook::routeLimitOrder(Order* newOrder, BookSideMap& bookSide) {
     Price priceKey = newOrder->getPrice();
     bookSide[priceKey].push_back(newOrder);
-    orderIds.insert(newOrder->getOrderId());
+    _activeOrders[priceKey].insert(newOrder->getOrderId());
+    //orderIds.insert(newOrder->getOrderId());
     _priceLevelData[priceKey].quantity  += newOrder->getQuantity();
     _priceLevelData[priceKey].orderCount++;
 }
@@ -279,6 +300,7 @@ template <typename BookSideMap>
 void OrderBook::routeCancelOrder(Order* newOrder, BookSideMap& bookSide) {
     Price orderPriceKey = newOrder->getPrice();
     int orderIdKey = newOrder->getOrderId();
+    _activeOrders[orderPriceKey].erase(orderIdKey);
     Orders& ordersAtLevel = bookSide[orderPriceKey];
     for (auto orders = ordersAtLevel.begin(); orders != ordersAtLevel.end(); ) {
         Order* order = *orders;

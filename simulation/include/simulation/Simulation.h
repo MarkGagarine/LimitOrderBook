@@ -2,11 +2,11 @@
 // Created by Mark Gagarine on 2025-01-05.
 //
 
-//#ifndef LOBSIMULATION_SIMULATION_H
-//#define LOBSIMULATION_SIMULATION_H
+#ifndef SIMULATION_H
+#define SIMULATION_H
 
-#include "engine/OrderBook.hpp"
-//#include "simulation/Order.hpp"
+//#include "engine/OrderBook.hpp"
+#include "engine/OrderController.hpp"
 #include <iostream>
 #include <vector>
 #include <map>
@@ -16,94 +16,101 @@
 #include <iterator>  // for std::back_inserter
 #include <cmath>
 
-//using OB_ptr = std::unique_ptr<OrderBook>;
+// Number of outstanding orders sitting on the book - different from others which track outstanding quantities
+using askQueue = std::map<Price, LevelData, std::less<Price>>;
+using bidQueue = std::map<Price, LevelData, std::greater<Price>>;
 
-// pairs containing price side, with quantity and count
-struct levelDataInfo {
-    std::pair<Price,LevelData> buys;
-    std::pair<Price,LevelData> sells;
-};
+// struct LevelData {
+//     Quantity quantity;
+//     int orderCount;
+// };
 
-using openOrderData = std::vector<levelDataInfo*>; // output these as csv?? too much memory??
-// or map of all current orders?? maybe not, would be difficult to keep track of mutliple locations
+using RNG = std::mt19937;
+using UNIF = std::uniform_real_distribution<double>;
 
-struct message {    // output these as csv?
-    //unsigned int time;
-    double time;
-    EventType type;
-    Side side;
-    int orderId;
-    double price;
-    double volume;
-};
-
-// remoce _startingPrice
-// replace jump size for average order size???
+using Rate = double;
+using Rates = std::vector<Rate>;
 
 /**
  * @brief Inputs to initialize and run LOB simulation
  */
 struct Inputs {
-    // Constructors
-    Inputs();
-    /**
-     * @brief Configurable simulation inputs
-     * @param _startingPrice Starting mid-price? Overridden by init vector?
-     * @param _initialOpenOrders Starting mid-price? Overridden by init vector?
-     * @param _ticks number of iterations
-     * @param _tickStep size of time steps
-     * @param _priceLevelSize number of price levels
-     * @param _limitBuyArrivalRates
-     * @param _limitSellArrivalRates
-     * @param _marketBuyArrivalRate
-     * @param _marketSellArrivalRate
-     * @param _limitBuyCancellationRate
-     * @param _limitSellCancellationRate
-     * @param _jumpSize distance between order levels
-     * @param _seed RNG init seed
-     */
-    Inputs(
-        const Price& _startingPrice,    // address??
-        openOrderData& _initialOpenOrders, // const?? address??
-        const int& _ticks,
-        const double& _tickStep,
-        const Price& _priceLevelSize,
-        const std::vector<double>& _limitBuyArrivalRates,
-        const std::vector<double>& _limitSellArrivalRates,
-        const double& _marketBuyArrivalRate,
-        const double& _marketSellArrivalRate,
-        const std::vector<double>& _limitBuyCancellationRate,
-        const std::vector<double>& _limitSellCancellationRate,
-        const int& _jumpSize,
-        const unsigned int& _seed
-    )
-        : startingPrice(_startingPrice)
-        , initialOpenOrders(_initialOpenOrders)
-        , ticks(_ticks)
-        , tickStep(_tickStep)
-        , priceLevelSize(_priceLevelSize)
-        , limitBuyArrivalRates(_limitBuyArrivalRates)
-        , limitSellArrivalRates(_limitSellArrivalRates)
-        , marketBuyArrivalRate(_marketBuyArrivalRate)
-        , marketSellArrivalRate(_marketSellArrivalRate)
-        , limitBuyCancellationRates(_limitBuyCancellationRate)
-        , limitSellCancellationRates(_limitSellCancellationRate)
-        , jumpSize(_jumpSize)
-        , seed(_seed) {}
-
-    Price startingPrice;
-    openOrderData initialOpenOrders;
-    const int ticks;
-    const double tickStep;
-    const Price priceLevelSize;
-    const std::vector<double> limitBuyArrivalRates;
-    const std::vector<double> limitSellArrivalRates;
-    const double marketBuyArrivalRate;
-    const double marketSellArrivalRate;
-    const std::vector<double> limitBuyCancellationRates;
-    const std::vector<double> limitSellCancellationRates;
-    const int jumpSize;
-    const unsigned int seed;
+    //Inputs();
+    Inputs(int ticks, double tickStep, Price priceLevelSize, Price targetSpread, Quantity jumpSize,
+        Rates& limitBuyArrivals, Rates& limitSellArrivals, Rate marketBuyArrival, Rate marketSellArrival,
+        Rates& limitBuyCancellations, Rates& limitSellCancellations, unsigned int seed);
+    int ticks;
+    double tickStep;
+    Price priceLevelSize;
+    Price targetSpread;
+    Quantity jumpSize;
+    Rates& limitBuyArrivals;
+    Rates& limitSellArrivals;
+    Rate marketBuyArrival;
+    Rate marketSellArrival;
+    Rates& limitBuyCancellations;
+    Rates& limitSellCancellations;
+    unsigned int seed;
+//     // Constructors
+//     Inputs();
+//     /**
+//      * @brief Configurable simulation inputs
+//      * @param _startingPrice Starting mid-price? Overridden by init vector?
+//      * @param _initialOpenOrders Starting mid-price? Overridden by init vector?
+//      * @param _ticks number of iterations
+//      * @param _tickStep size of time steps
+//      * @param _priceLevelSize number of price levels
+//      * @param _limitBuyArrivalRates
+//      * @param _limitSellArrivalRates
+//      * @param _marketBuyArrivalRate
+//      * @param _marketSellArrivalRate
+//      * @param _limitBuyCancellationRate
+//      * @param _limitSellCancellationRate
+//      * @param _jumpSize distance between order levels
+//      * @param _seed RNG init seed
+//      */
+//     Inputs(
+//         const Price& _startingPrice,    // address??
+//         openOrderData& _initialOpenOrders, // const?? address??
+//         const int& _ticks,
+//         const double& _tickStep,
+//         const Price& _priceLevelSize,
+//         const std::vector<double>& _limitBuyArrivalRates,
+//         const std::vector<double>& _limitSellArrivalRates,
+//         const double& _marketBuyArrivalRate,
+//         const double& _marketSellArrivalRate,
+//         const std::vector<double>& _limitBuyCancellationRate,
+//         const std::vector<double>& _limitSellCancellationRate,
+//         const int& _jumpSize,
+//         const unsigned int& _seed
+//     )
+//         : startingPrice(_startingPrice)
+//         , initialOpenOrders(_initialOpenOrders)
+//         , ticks(_ticks)
+//         , tickStep(_tickStep)
+//         , priceLevelSize(_priceLevelSize)
+//         , limitBuyArrivalRates(_limitBuyArrivalRates)
+//         , limitSellArrivalRates(_limitSellArrivalRates)
+//         , marketBuyArrivalRate(_marketBuyArrivalRate)
+//         , marketSellArrivalRate(_marketSellArrivalRate)
+//         , limitBuyCancellationRates(_limitBuyCancellationRate)
+//         , limitSellCancellationRates(_limitSellCancellationRate)
+//         , jumpSize(_jumpSize)
+//         , seed(_seed) {}
+//
+//     Price startingPrice;
+//     openOrderData initialOpenOrders;
+//     const int ticks;
+//     const double tickStep;
+//     const Price priceLevelSize;
+//     const std::vector<double> limitBuyArrivalRates;
+//     const std::vector<double> limitSellArrivalRates;
+//     const double marketBuyArrivalRate;
+//     const double marketSellArrivalRate;
+//     const std::vector<double> limitBuyCancellationRates;
+//     const std::vector<double> limitSellCancellationRates;
+//     const int jumpSize;
+//     const unsigned int seed;
 };
 
 /* limit buys          limit sells
@@ -115,43 +122,62 @@ struct Inputs {
  *  bids                     asks
  */
 
+using MassOrderEntry = std::vector<NewOrderCmd>;
+
+
 class Simulation {
 
 public:
 
-    explicit Simulation(const Inputs* inputs);
+    //explicit Simulation(const Inputs* inputs);
+    explicit Simulation(Inputs& inputs);
     ~Simulation();
-    void runSimulation();
-    Orders step();
+    MassOrderEntry step();
+    void updateState(const DeltaUpdates& updates);
 
+    // for testing now
+    void addToQ(LevelData data, Price price, Side side) {
+        if (side == Side::buy) {
+            _bids[price] = data;
+            std::cout << _bids.size() << std::endl;
+        }
+        else {
+            _asks[price] = data;
+            std::cout << _asks.size() << std::endl;
+        }
+    }
 
 private:
 
-    std::vector<double> generateUniforms(size_t n);
+    std::vector<double> sampleUniform(size_t n);
+    Rates sampleRates(std::vector<double>& U);
 
-    OrderBook* initBook();
+    //Price getSpread() const;
 
-    Price _currentPrice;
-    openOrderData _currentOpenOrders;
+    askQueue _asks;
+    bidQueue _bids;
     const int _ticks;
     const double _tickStep;
     const Price _priceLevelSize;
-    const std::vector<double> _limitBuyArrivalRates;
-    const std::vector<double> _limitSellArrivalRates;
-    const double _marketBuyArrivalRate;
-    const double _marketSellArrivalRate;
-    const std::vector<double> _limitBuyCancellationRates;
-    const std::vector<double> _limitSellCancellationRates;
-    const int _jumpSize;
+    const Price _targetSpread;
+    const Quantity _jumpSize;
+    const Rates& _limitBuyArrivals;
+    const Rates& _limitSellArrivals;
+    const Rate _marketBuyArrival;
+    const Rate _marketSellArrival;
+    const Rates& _limitBuyCancellations;
+    const Rates& _limitSellCancellations;
     const unsigned int _seed;
-    std::mt19937 gen{_seed};
-
+    RNG gen{_seed};
     size_t _numLevels;
 
-    std::uniform_real_distribution<double> unif{0.0, 1.0};
+    std::vector<Price> _priceGrid;
+
+    Price _prevBestAsk;     // keep track of price movement directions
+    Price _prevBestBid;
+
+    UNIF _unif{0.0, 1.0};
     unsigned int _orderCounter{0};
 
-    OrderBook* _book;
-
 };
-//#endif //LOBSIMULATION_SIMULATION_H
+#endif //SIMULATION_H

@@ -2,25 +2,26 @@
 // Created by Mark Gagarine on 2025-01-05.
 //
 
-//#ifndef LOBSIMULATION_ORDER_H
-//#define LOBSIMULATION_ORDER_H
-#pragma once
+#ifndef ORDER_HPP
+#define ORDER_HPP
+
+#include <cstdint>  // uint8_t
 
 using Price = double;
 using Quantity = int;
 
-enum class Side {
+enum class Side : uint8_t {
     buy,
     sell
 };
 
-enum class EventType {
+enum class EventType : uint8_t {
     market,
     limit,
     cancel
 };
 
-enum class OrderStatus {
+enum class OrderStatus : uint8_t {
     open,
     partial,
     filled
@@ -44,14 +45,14 @@ public:
 
 private:
 
-    EventType _type;
-    int _orderId;
-    Side _side;
     Price _price;
     Quantity _quantity;
     Quantity _quantityRemaining;
+    int _orderId;
+    EventType _type;
+    Side _side;
     OrderStatus _status;
 
 };
 
-//#endif //LOBSIMULATION_ORDER_H
+#endif //ORDER_HPP

@@ -58,6 +58,7 @@ public:
     Price getSpread() const;
     PriceLevelData getPriceLevelData() const;
     std::set<int> getOrderIds() const;
+    int getActiveOrderID(Price price) const;
     int getTopOrderId() const;
 
 private:
@@ -76,6 +77,7 @@ private:
     std::map<Price, Orders, std::greater<Price>> _bids;
     std::map<Price, Orders, std::less<Price>> _asks;
 
+    std::map<Price, std::set<int>> _activeOrders;
     std::set<int> orderIds;
     //std::map<int, Orders::iterator> _orderIndex;
     Updates _updateBuffer;

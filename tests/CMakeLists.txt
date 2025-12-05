@@ -11,6 +11,10 @@ add_executable(test_orderbook_runner test_orderbook.cpp)
 target_link_libraries(test_orderbook_runner lob_engine)
 add_test(NAME orderbook_test COMMAND test_orderbook_runner)
 
-#add_executable(test_simulation_runner test_simulation.cpp)
-#target_link_libraries(test_simulation_runner lob_core)
-#add_test(NAME simulation_test COMMAND test_simulation_runner)
+add_executable(test_simulation_runner test_simulation.cpp)
+target_link_libraries(test_simulation_runner lob_engine simulation)
+add_test(NAME simulation_test COMMAND test_simulation_runner)
+
+add_executable(test_controller_runner test_ordercontroller.cpp)
+target_link_libraries(test_controller_runner lob_engine)
+add_test(NAME controller_test COMMAND test_controller_runner)

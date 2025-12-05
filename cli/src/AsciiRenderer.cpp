@@ -26,6 +26,7 @@ void renderBook(const map<Price, Quantity, greater<Price>>& bids, const map<Pric
     for (auto bIt = bids.begin(); bIt != bids.end(); bIt++) {
         cout << "\033[94m" << "$ " << bIt->first << " x " << bIt->second << "\033[0m" << "\n";
     }
+    cout << "\n";
     cout.flush();
 }
 

@@ -5,270 +5,245 @@
 using namespace std;
 
 
+
+
+Inputs::Inputs(int ticks, double tickStep, Price priceLevelSize, Price targetSpread, Quantity jumpSize,
+        Rates& limitBuyArrivals, Rates& limitSellArrivals, Rate marketBuyArrival, Rate marketSellArrival,
+        Rates& limitBuyCancellations, Rates& limitSellCancellations, unsigned int seed)
+            : ticks(ticks)
+            , tickStep(tickStep)
+            , priceLevelSize(priceLevelSize)
+            , targetSpread(targetSpread)
+            , jumpSize(jumpSize)
+            , limitBuyArrivals(limitBuyArrivals)
+            , limitSellArrivals(limitSellArrivals)
+            , marketBuyArrival(marketBuyArrival)
+            , marketSellArrival(marketSellArrival)
+            , limitBuyCancellations(limitBuyCancellations)
+            , limitSellCancellations(limitSellCancellations)
+            , seed(seed) {
+    // Constructor initialization
+}
+
 /**
  * @brief LOB Simulation constructor
  * @param inputs Struct containing simulation configuration parameters
  */
-Simulation::Simulation(const Inputs* inputs)
-    : _currentPrice(inputs->startingPrice)
-    , _currentOpenOrders(inputs->initialOpenOrders)
-    , _ticks(inputs->ticks)
-    , _tickStep(inputs->tickStep)
-    , _priceLevelSize(inputs->priceLevelSize)
-    , _limitBuyArrivalRates(inputs->limitBuyArrivalRates)
-    , _limitSellArrivalRates(inputs->limitSellArrivalRates)
-    , _marketBuyArrivalRate(inputs->marketBuyArrivalRate)
-    , _marketSellArrivalRate(inputs->marketSellArrivalRate)
-    , _limitBuyCancellationRates(inputs->limitBuyCancellationRates)
-    , _limitSellCancellationRates(inputs->limitSellCancellationRates)
-    , _jumpSize(inputs->jumpSize)
-    , _seed(inputs->seed) {
+// Simulation::Simulation(const Inputs* inputs)
+//     : _currentPrice(inputs->startingPrice)
+//     , _currentOpenOrders(inputs->initialOpenOrders)
+//     , _ticks(inputs->ticks)
+//     , _tickStep(inputs->tickStep)
+//     , _priceLevelSize(inputs->priceLevelSize)
+//     , _limitBuyArrivalRates(inputs->limitBuyArrivalRates)
+//     , _limitSellArrivalRates(inputs->limitSellArrivalRates)
+//     , _marketBuyArrivalRate(inputs->marketBuyArrivalRate)
+//     , _marketSellArrivalRate(inputs->marketSellArrivalRate)
+//     , _limitBuyCancellationRates(inputs->limitBuyCancellationRates)
+//     , _limitSellCancellationRates(inputs->limitSellCancellationRates)
+//     , _jumpSize(inputs->jumpSize)
+//     , _seed(inputs->seed) {
+//     // constructor initialization + sanity checks
+//     const size_t _limitBuyArrivalRatesLength = _limitBuyArrivalRates.size();
+//     const size_t _limitSellArrivalRatesLength = _limitBuyArrivalRates.size();
+//     if (_limitBuyArrivalRatesLength != _limitBuyCancellationRates.size()) {
+//         throw length_error("Limit buy arrival rates must have same number of cancellations");
+//     }
+//     if (_limitSellArrivalRatesLength != _limitSellCancellationRates.size()) {
+//         throw length_error("Limit sell arrival rates must have same number of cancellations");
+//     }
+//     if (_limitBuyArrivalRatesLength != _limitSellArrivalRatesLength) {
+//         throw length_error("Depth of orderbook must be of equal size for bids and asks");
+//     }
+//     // initialize values
+//     _numLevels = _limitBuyArrivalRatesLength;
+//
+//     _book = initBook();
+// }
+
+
+
+// MassOrderCmd::MassOrderCmd(LimitOrderCmd NewLimitOrder);
+// MassOrderCmd::MassOrderCmd(CancelOrderCmd NewCancelOrder);
+
+Simulation::Simulation(Inputs& inputs)
+        : _ticks(inputs.ticks)
+        , _tickStep(inputs.tickStep)
+        , _priceLevelSize(inputs.priceLevelSize)
+        , _targetSpread(inputs.targetSpread)
+        , _jumpSize(inputs.jumpSize)
+        , _limitBuyArrivals(inputs.limitBuyArrivals)
+        , _limitSellArrivals(inputs.limitSellArrivals)
+        , _marketBuyArrival(inputs.marketBuyArrival)
+        , _marketSellArrival(inputs.marketSellArrival)
+        , _limitBuyCancellations(inputs.limitBuyCancellations)
+        , _limitSellCancellations(inputs.limitSellCancellations)
+        , _seed(inputs.seed) {
     // constructor initialization + sanity checks
-    const size_t _limitBuyArrivalRatesLength = _limitBuyArrivalRates.size();
-    const size_t _limitSellArrivalRatesLength = _limitBuyArrivalRates.size();
-    if (_limitBuyArrivalRatesLength != _limitBuyCancellationRates.size()) {
+    size_t _limitBuyArrivalsLength = _limitBuyArrivals.size();
+    size_t _limitSellArrivalsLength = _limitBuyArrivals.size();
+    if (_limitBuyArrivalsLength != _limitBuyCancellations.size()) {
         throw length_error("Limit buy arrival rates must have same number of cancellations");
     }
-    if (_limitSellArrivalRatesLength != _limitSellCancellationRates.size()) {
+    if (_limitSellArrivalsLength != _limitSellCancellations.size()) {
         throw length_error("Limit sell arrival rates must have same number of cancellations");
     }
-    if (_limitBuyArrivalRatesLength != _limitSellArrivalRatesLength) {
+    if (_limitBuyArrivalsLength != _limitSellArrivalsLength) {
         throw length_error("Depth of orderbook must be of equal size for bids and asks");
     }
     // initialize values
-    _numLevels = _limitBuyArrivalRatesLength;
+    _numLevels = _limitBuyArrivalsLength * 4; // count of all limit arrival rates
 
-    _book = initBook();
+    int priceGridRange = 1000;
+    _priceGrid.reserve(priceGridRange);   // init first 1000 evenly spaced price levels
+    for (int i = 0; i < priceGridRange; i++) {
+        _priceGrid.emplace_back(i * _priceLevelSize);
+    }
+    cout << "Starting Price Grid Range: $" << _priceGrid[0] << " - $" << _priceGrid[999] << endl;
+
+    _prevBestAsk = 0;
+    _prevBestBid = 0;
+
 }
 
 Simulation::~Simulation() {
-    if (_book) {
-        // cleanup
-        try {
-            delete _book;
+    _asks.clear();
+    _bids.clear();
+}
+
+template <typename sideQueue>
+void updateStateQueue(const unique_ptr<Delta>& update, sideQueue& queue) {
+    if (update->type == EventType::limit) {
+    queue[update->price].orderCount += 1;
+        queue[update->price].quantity += update->quantity;
+    }
+    else {
+        queue[update->price].orderCount -= 1;
+        queue[update->price].quantity -= update->quantity;
+    }
+}
+
+/**
+ * Update Simulation State with new OrderBook Updates
+ * @param updates change in orderbook state
+ */
+void Simulation::updateState(const DeltaUpdates& updates) {
+    for (const auto& update : updates) {
+        if (update->side == Side::buy) {
+            updateStateQueue(update, _bids);
+            // temp for now
+            _prevBestBid = _bids.begin()->first;
         }
-        catch (const exception& e) {
-            std::cerr << e.what() << std::endl;
+        else {
+            updateStateQueue(update, _asks);
+            _prevBestAsk = _asks.begin()->first;
         }
     }
 }
 
-
-OrderBook* Simulation::initBook() {
-    OrderBook* book = new OrderBook();
-    // fill levels
-    for (auto level = _currentOpenOrders.begin(); level != _currentOpenOrders.begin(); ++level) {
-        levelDataInfo* data = *level;
-
-    }
-
-
-    return book;
-}
-
-
-
-/**
- * @brief Initialize arrival rates for limit buy orders
- * @param arrivalRates Vector of arrival rates starting from closest to opposite side descending
- */
-//void Simulation::setLimitBuyArrivalRates(const std::vector<double>& arrivalRates) {
-  //  _limitBuyArrivalRates = arrivalRates;
-/*
-    _limitBuyArrivalRates.reserve(arrivalRates.size());
-    std::transform(arrivalRates.begin(),
-                   arrivalRates.end(),
-                   std::back_inserter(_limitBuyArrivalRates),
-                   [](double lambda) {
-                       return EXP(lambda);
-                   });
-    initEXP(arrivalRates, _limitBuyArrivalRates);
-*/
-//}
-
-/**
- * @brief Initialize arrival rates for limit sell orders
- * @param arrivalRates Vector of arrival rates starting from closest to opposite side ascending
- */
-//void Simulation::setLimitSellArrivalRates(std::vector<double> arrivalRates) {
-  //  _limitSellArrivalRates = arrivalRates;
-    /*_limitSellArrivalRates.reserve(arrivalRates.size());
-    initEXP(arrivalRates, _limitSellArrivalRates);
-*/
-//}
-/*
-void Simulation::setMarketBuyArrivalRate(double arrivalRate) {
-    _marketBuyArrivalRate = arrivalRate;
-
-    //_marketBuyArrivalRate = EXP(arrivalRate);
-}
-
-void Simulation::setMarketSellArrivalRate(double arrivalRate) {
-    _marketSellArrivalRate = arrivalRate;
-    //_marketSellArrivalRate = EXP(arrivalRate);
-}
-
-void Simulation::setLimitBuyCancellationRates(std::vector<double> arrivalRates) {
-    _limitBuyCancellationRates = arrivalRates;
-/*
-    _limitBuyCancellationRates.reserve(arrivalRates.size());
-    initEXP(arrivalRates, _limitBuyCancellationRates);
-}
-*/
-
-//void Simulation::setLimitSellCancellationRates(std::vector<double> arrivalRates) {
-  //  _limitSellCancellationRates = arrivalRates;
-/*
-    _limitSellCancellationRates.reserve(arrivalRates.size());
-    initEXP(arrivalRates, _limitSellCancellationRates);
-*/
-//}
-
-/*void Simulation::setSeed(unsigned int seed) {
-    _seed = seed;
-}*/
-
-/*
-void Simulation::initEXP(std::vector<double>& rates, std::vector<EXP>& exps) {
-
-    std::transform(rates.begin(),
-                   rates.end(),
-                   std::back_inserter(exps),
-                   [](double lambda) {
-                       return EXP(lambda);
-                   });
-}*/
-
-//double Simulation::EXP(double rate, std::mt19937 &gen) {
-//    return -log(std::uniform_real_distribution<>(0.,1.)(gen)) / rate;
-//}
-
-//Quantity generateQuantity();
 
 /**
  * @brief Generate vector of n uniform random variables
  * @param n size of resulting vector
  * @return vector containing n iid random uniforms
  */
-std::vector<double> Simulation::generateUniforms(size_t n) {
-    std::vector<double> result(n);
+vector<double> Simulation::sampleUniform(size_t n) {
+    vector<double> result(n);
     for (size_t i = 0; i < n; i++) {
-        result[i] = unif(gen);
+        result[i] = _unif(gen);
     }
     return result;
 }
-
 
 /**
  * @brief Iterate towards next simulation step
  * @return Orders generated for next iteration
  */
-Orders Simulation::step() {
-    Orders orders;
-    std::vector<double> rates = generateUniforms(_numLevels);
-    // new limit buy
+MassOrderEntry Simulation::step() {
+    // check spread first
+    // ...
+    MassOrderEntry newOrders;
 
-    // limit sells
+    auto aIt = _asks.begin();
+    auto bIt = _bids.begin();
 
-    return orders;
-}
+    Price ithAsk = aIt->first;
+    Price ithBid = bIt->first;
 
+    Quantity askQty;
+    Quantity bidQty;
+    Price askJump = ithAsk - _prevBestAsk;
+    Price bidJump = _prevBestBid - ithBid;
 
-
-/**
- * @brief Simulate Limit Order Book dynamics by sampling time steps of independent Poisson processes
- */
-void Simulation::runSimulation() {
-    // size_t rateCount = 4 * _limitBuyArrivalRates.size() + 2;
-    // vector<double> rates;
-    //
-    // rates.insert(rates.end(), _limitBuyArrivalRates.begin(), _limitBuyArrivalRates.end());
-    //
-    //
-    // for (auto& rate : rates) {
-    //     cout << "rate: " << rate << endl;
-    // }
-
-
-    int t = 0;
-
-    while (t < _ticks) {
-        // generate next step
-        // -- Tie-breaker order (Market > Cancel > Limit) ( for now -- add randomness later)
-        //Orders newOrders = step();
-
-
-        ++t;
+    if (askJump >= _priceLevelSize) {
+        int askLevelJumps =  std::floor(askJump / _priceLevelSize);
+        ithBid += askLevelJumps * _priceLevelSize;
+        bidQty = 0;
     }
+    if (bidJump >= _priceLevelSize) {
+        int askLevelJumps =  std::floor(bidJump / _priceLevelSize);
+        ithAsk -= askLevelJumps * _priceLevelSize;
+        askQty = 0;
+    }
+    // handle spread > target??
+    Price spread = ithAsk - ithBid;
 
+    //cout << "Bid: " << ithBid << " ,Ask: " << ithAsk << endl;
 
-
-    /*
-    for (int level_size = 0; level_size < 6; ++level_size) {
-
-        if (level_size < 3) {
-            // add asks             // start price + spread + level depth
-            Price currOrderPrice = _startingPrice + _priceLevelSize + (3 - initLevels[level_size]);
-
-            // sample sample number of orders
-            int ordercnt = UNIF(1, 3 + initLevels[level_size])(gen) * initLevels[level_size];
-
-            for (int k = 0; k < ordercnt; ++k) {
-                // generate order quantity
-                Quantity qty = 5 * UNIF(1,5)(gen);
-                // add the order to LOB
-                Order newOrder = Order(EventType::limit, _orderCounter, Side::sell, currOrderPrice, qty);
-                _OB.addOrder(&newOrder);
-                std::cout << "$" << currOrderPrice  << " ,QTY: " << qty << "\n";
-                ++_orderCounter;
-            }
+    vector<double> U = sampleUniform(_numLevels + 2);
+    for (int i = 0; i < _numLevels; i += 4) {
+        if ((ithAsk < _prevBestAsk) || (aIt == _asks.end())) {    // jump down occured
+            askQty = 0;
         }
         else {
-            Price currOrderPrice = _startingPrice - (3 - initLevels[level_size]);
-            // sample sample number of orders
-            int ordercnt = UNIF(1, 3 + initLevels[level_size])(gen) * initLevels[level_size];
-
-            for (int k = 0; k < ordercnt; ++k) {
-                // generate order quantity
-                Quantity qty = 5 * UNIF(1, 5)(gen);
-                // add the order to LOB
-
-                Order newOrder = Order(EventType::limit, _orderCounter, Side::buy, currOrderPrice, qty);
-                _OB.addOrder(&newOrder);
-                std::cout << "$" << currOrderPrice << " ,QTY: " << qty << "\n";
-                ++_orderCounter;
-            }
+            ithAsk = aIt->first;
+            askQty = aIt->second.quantity;
+            ++aIt;
         }
-    }*/
-    /*
-    std::map<Price, LevelData, std::greater<Price>> dat = _OB.getPriceLevelData();
-    std::cout << "----Initialized OrderBook----\n";
-    for (auto level : dat){
-        std::cout << level.second.orderCount << " orders with " << level.second.quantity << " available @ $" << level.first << std::endl;
+        if (U[i] < _limitSellArrivals[i] * _tickStep) {  // U < \lambda \delta_t
+            // generate limit buy at ith price level opposite of best ask
+            newOrders.push_back(LimitOrderCmd(Side::sell, ithAsk, _jumpSize));
+            cout << "LIMIT SELL @ $" << ithAsk << ";";
+        }
+        if ((askQty> 0) && (U[i + 1] < _limitSellCancellations[i] * _tickStep)) {
+            // generate limit buy at ith price level opposite of best ask
+            newOrders.push_back(CancelOrderCmd(Side::sell, 0, _jumpSize)); // NEED ORDER ID!!
+            cout << "CANCEL SELL @ $" << ithAsk << ";";
+        }
+
+        if ((ithBid > _prevBestBid) || (bIt == _bids.end())) {    // jump up occured
+            bidQty = 0;
+        }
+        else {
+            ithBid = bIt->first;
+            bidQty = bIt->second.quantity;
+            ++bIt;
+        }
+        if (U[i + 2] < _limitBuyArrivals[i] * _tickStep) {  // U < \lambda \delta_t
+            // generate limit buy at ith price level opposite of best ask
+            newOrders.push_back(LimitOrderCmd(Side::buy, ithBid, _jumpSize)); // NEED ORDER ID!!
+            cout << "LIMIT BUY @ $" << ithBid << ";";
+        }
+        if ((bidQty > 0) && (U[i + 3] < _limitBuyCancellations[i] * _tickStep)) {
+            // generate limit buy at ith price level opposite of best ask
+            newOrders.push_back(CancelOrderCmd(Side::buy, 0, _jumpSize)); // NEED ORDER ID!!
+            cout << "CANCEL BUY @ $" << ithBid << ";";
+        }
+        if (ithAsk < _prevBestAsk) {
+            ithAsk += _priceLevelSize;
+        }
+        if (ithBid > _prevBestBid) {
+            ithBid -= _priceLevelSize;
+        }
     }
-    std::cout << "\n The spread is $" << _OB.getSpread() << "\n";
-    std::cout << "\nThe lowest ask is $" << _OB.getBestQuote(Side::buy);
-    std::cout << "\nThe highest bid is $" << _OB.getBestQuote(Side::sell) << "\n";
-
-    _limitBuyTimes.reserve(3);
-    _limitSellTimes.reserve(3);
-    _cancelBuyTimes.reserve(3);
-    _cancelSellTimes.reserve(3);
-    // initial sweep of sampling times
-    for (int i = 0; i < 3; ++i) {
-
-        _limitBuyTimes[i] = EXP(_limitBuyArrivalRates[i], gen);
-        _limitSellTimes[i] = EXP(_limitSellArrivalRates[i], gen);
-        _cancelBuyTimes[i] = EXP(_limitBuyCancellationRates[i], gen);        // make rate propotional to size of current ask queue
-        _cancelSellTimes[i] = EXP(_limitSellCancellationRates[i], gen);
-*/
-/*
-        std::cout << " time till limit buy  " << _limitBuyTimes[i] << "\n";
-        std::cout << " time till limit sell " << _limitSellTimes[i]<< "\n";
-        std::cout << " time till cancel buy " << _cancelBuyTimes[i]<< "\n";
-        std::cout << "time till cancel sell " << _cancelSellTimes[i]<< "\n";
+    if (U[_numLevels] < _marketBuyArrival * _tickStep) {
+        newOrders.push_back(MarketOrderCmd(Side::buy, _jumpSize));
+        cout << "MARKET BUY"  << ";";
     }
-  */
-
-    cout << "Simulation Complete" << endl;
+    if (U[_numLevels + 1] < _marketSellArrival * _tickStep) {
+        newOrders.push_back(MarketOrderCmd(Side::sell, _jumpSize));
+        cout << "MARKET SELL" << ";";
+    }
+    cout << "\n";
+    return newOrders;
 }
